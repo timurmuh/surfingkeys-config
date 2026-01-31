@@ -6,7 +6,7 @@ services:
     ports:
       - "${SERVER_PORT:-16080}:${SERVER_PORT:-16080}"
     environment:
-      - SERVER_HOST=${SERVER_HOST:-127.0.0.1}
+      - SERVER_HOST=0.0.0.0
       - SERVER_PORT=${SERVER_PORT:-16080}
       - PROTON_EMAIL=${PROTON_EMAIL}
       - PROTON_PASS_PASSWORD=${PROTON_PASS_PASSWORD}

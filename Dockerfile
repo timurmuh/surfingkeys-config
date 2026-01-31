@@ -3,7 +3,7 @@ FROM oven/bun:1 AS config-builder
 WORKDIR /app
 
 # Copy workspace configuration
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Copy packages
 COPY packages/surfingkeys-types ./packages/surfingkeys-types
@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y curl jq && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://proton.me/download/pass-cli/install.sh | bash
 
 # Copy workspace configuration
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Copy server package
 COPY packages/server ./packages/server
