@@ -1,6 +1,8 @@
 import { serve } from 'bun';
 import { handleGetSecret } from './routes/secrets';
 import { $ } from 'bun';
+import { resolve } from 'path';
+import { existsSync } from 'fs';
 
 // Authenticate with Proton Pass on startup
 async function authenticateProtonPass() {
@@ -18,9 +20,23 @@ async function authenticateProtonPass() {
   }
 }
 
+// Determine config bundle path (Docker vs local)
+function getConfigPath(): string {
+  const dockerPath = '/app/static/config.js';
+  const localPath = resolve(import.meta.dir, '../../config/dist/bundle.js');
+
+  if (existsSync(dockerPath)) {
+    return dockerPath;
+  }
+  return localPath;
+}
+
 // Start server
 async function startServer() {
   await authenticateProtonPass();
+
+  const configPath = getConfigPath();
+  console.log(`Serving config from: ${configPath}`);
 
   const server = serve({
     port: parseInt(process.env.SERVER_PORT || '16080'),
@@ -31,7 +47,7 @@ async function startServer() {
 
       // Serve config bundle
       if (url.pathname === '/config.js') {
-        const file = Bun.file('/app/static/config.js');
+        const file = Bun.file(configPath);
         return new Response(file, {
           headers: { 'Content-Type': 'application/javascript' }
         });

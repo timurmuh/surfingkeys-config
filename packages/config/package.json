@@ -11,7 +11,8 @@
     "@surfingkeys-config-service/surfingkeys-types": "workspace:*"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
-    "typescript": "^5.3.3"
+    "terser": "^5.46.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0"
   }
 }
