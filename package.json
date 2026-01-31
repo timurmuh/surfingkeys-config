@@ -1,0 +1,23 @@
+{
+  "name": "surfingkeys-config-service",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run build:types && bun run build:config",
+    "build:types": "cd packages/surfingkeys-types/scripts && ./generate.sh",
+    "build:config": "cd packages/config && bun run build",
+    "dev": "docker compose -f docker-compose.dev.yml up",
+    "start": "docker compose up -d",
+    "stop": "docker compose down",
+    "setup": "./scripts/get-proton-creds.sh",
+    "logs": "docker compose logs -f",
+    "test": "bun test",
+    "typecheck": "cd packages/config && tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

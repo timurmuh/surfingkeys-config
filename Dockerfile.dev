@@ -1,0 +1,17 @@
+FROM oven/bun:1
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lock ./
+COPY packages ./packages
+
+# Install dependencies
+RUN bun install
+
+ENV NODE_ENV=development
+ENV TEST_MODE=true
+
+# Start: vite watch in background, then server watch in foreground
+CMD ["/bin/bash", "-c", "\
+  cd /app/packages/config && bun run vite build --watch & \
+  cd /app/packages/server && bun run --watch src/index.ts"]

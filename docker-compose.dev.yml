@@ -1,0 +1,22 @@
+services:
+  surfingkeys-server-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${SERVER_PORT:-16080}:${SERVER_PORT:-16080}"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=${SERVER_PORT:-16080}
+      - PROTON_EMAIL=${PROTON_EMAIL}
+      - PROTON_PASS_PASSWORD=${PROTON_PASS_PASSWORD}
+      - PROTON_PASS_TOTP=${PROTON_PASS_TOTP}
+      - PROTON_PASS_EXTRA_PASSWORD=${PROTON_PASS_EXTRA_PASSWORD}
+      - NODE_ENV=development
+    volumes:
+      # Mount config source for editing
+      - ./packages/config/src:/app/packages/config/src:ro
+      # Mount config build output
+      - ./packages/config/dist:/app/static:ro
+      # Mount server source for hot reload
+      - ./packages/server/src:/app/packages/server/src:ro

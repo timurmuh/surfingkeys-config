@@ -1,0 +1,21 @@
+# Worktrees
+.worktrees/
+
+# Environment
+.env
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Surfingkeys types output
+packages/surfingkeys-types/output/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store

@@ -1,0 +1,9 @@
+{
+  "name": "@surfingkeys-config-service/surfingkeys-types",
+  "private": true,
+  "version": "0.0.0-dev",
+  "types": "output/index.d.ts",
+  "scripts": {
+    "generate": "cd scripts && ./generate.sh"
+  }
+}

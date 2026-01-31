@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "typeRoots": [
+      "../../node_modules/@types",
+      "../surfingkeys-types/output"
+    ],
+    "types": ["@surfingkeys-config-service/surfingkeys-types"]
+  },
+  "include": ["src/**/*"]
+}
