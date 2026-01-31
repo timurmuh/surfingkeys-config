@@ -1,0 +1,164 @@
+name: Generate Surfingkeys TypeScript Definitions
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Surfingkeys version/branch to generate types from'
+        required: false
+        default: 'master'
+  schedule:
+    # Run weekly on Monday at 00:00 UTC to catch upstream updates
+    - cron: '0 0 * * 1'
+
+jobs:
+  generate-types:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine Surfingkeys version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            # Surfingkeys doesn't use version tags, default to master
+            echo "version=master" >> $GITHUB_OUTPUT
+            echo "Using master branch (Surfingkeys has no version tags)"
+          fi
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('surfingkeys-types/docker/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        run: |
+          docker buildx build \
+            --build-arg SURFINGKEYS_REPO=https://github.com/brookhong/Surfingkeys.git \
+            --build-arg SURFINGKEYS_VERSION=${{ steps.version.outputs.version }} \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            -t surfingkeys-types:latest \
+            -f surfingkeys-types/docker/Dockerfile \
+            surfingkeys-types/docker/..
+
+      - name: Generate TypeScript definitions
+        run: |
+          mkdir -p surfingkeys-types/output
+          docker run --rm \
+            -v ${{ github.workspace }}/surfingkeys-types/output:/output \
+            surfingkeys-types:latest
+
+      - name: Post-process types
+        run: |
+          OUTPUT_DIR="${{ github.workspace }}/surfingkeys-types/output"
+          INDEX_FILE="${OUTPUT_DIR}/index.d.ts"
+
+          # Create index.d.ts
+          cat > "${INDEX_FILE}" << 'EOF'
+          /**
+           * TypeScript definitions for Surfingkeys
+           * Generated from JSDoc comments in the Surfingkeys source code
+           * @see https://github.com/brookhong/Surfingkeys
+           */
+
+          /// <reference path="./content_scripts/common/api.d.ts" />
+          /// <reference path="./content_scripts/common/runtime.d.ts" />
+          /// <reference path="./content_scripts/common/clipboard.d.ts" />
+          /// <reference path="./content_scripts/common/utils.d.ts" />
+
+          import type createAPI from './content_scripts/common/api';
+
+          /**
+           * The global Surfingkeys API object available in .surfingkeysrc
+           */
+          declare global {
+              const api: ReturnType<typeof createAPI>;
+          }
+
+          // Also export the API type for use in modules
+          export type SurfingkeysAPI = ReturnType<typeof createAPI>;
+          EOF
+
+          # Extract version number and create package.json
+          SURFINGKEYS_VERSION="${{ steps.version.outputs.version }}"
+          PKG_VERSION="${SURFINGKEYS_VERSION#v}"
+          if [ "$PKG_VERSION" = "master" ] || [ "$PKG_VERSION" = "main" ]; then
+            PKG_VERSION="0.0.0-dev"
+          fi
+
+          cat > "${OUTPUT_DIR}/package.json" << EOF
+          {
+            "name": "surfingkeys-types",
+            "version": "${PKG_VERSION}",
+            "description": "TypeScript definitions for Surfingkeys ${SURFINGKEYS_VERSION}",
+            "types": "index.d.ts",
+            "keywords": ["surfingkeys", "typescript", "definitions", "types"],
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/brookhong/Surfingkeys.git"
+            },
+            "license": "MIT",
+            "metadata": {
+              "surfingkeysVersion": "${SURFINGKEYS_VERSION}",
+              "generatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            }
+          }
+          EOF
+
+      - name: Display generated types info
+        run: |
+          echo "Generated types info:"
+          echo "Output directory: surfingkeys-types/output"
+          echo "Total .d.ts files: $(find surfingkeys-types/output -name "*.d.ts" | wc -l)"
+          echo ""
+          echo "File structure:"
+          find surfingkeys-types/output -name "*.d.ts" | head -20
+          echo ""
+          echo "index.d.ts content:"
+          cat surfingkeys-types/output/index.d.ts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: surfingkeys-types-${{ steps.version.outputs.version }}
+          path: surfingkeys-types/output/
+          retention-days: 90
+
+      - name: Create release archive
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cd surfingkeys-types
+          tar -czf surfingkeys-types.tar.gz output/
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: surfingkeys-types/surfingkeys-types.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Move cache to prevent unlimited growth
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
