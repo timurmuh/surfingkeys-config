@@ -1,0 +1,15 @@
+services:
+  surfingkeys-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT:-16080}:${SERVER_PORT:-16080}"
+    environment:
+      - SERVER_HOST=${SERVER_HOST:-127.0.0.1}
+      - SERVER_PORT=${SERVER_PORT:-16080}
+      - PROTON_EMAIL=${PROTON_EMAIL}
+      - PROTON_PASS_PASSWORD=${PROTON_PASS_PASSWORD}
+      - PROTON_PASS_TOTP=${PROTON_PASS_TOTP}
+      - PROTON_PASS_EXTRA_PASSWORD=${PROTON_PASS_EXTRA_PASSWORD}
+    restart: unless-stopped

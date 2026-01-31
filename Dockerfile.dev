@@ -1,0 +1,23 @@
+FROM oven/bun:1
+WORKDIR /app
+
+# Install Proton Pass CLI dependencies
+RUN apt-get update && apt-get install -y curl jq && rm -rf /var/lib/apt/lists/*
+
+# Install Proton Pass CLI
+RUN curl -fsSL https://proton.me/download/pass-cli/install.sh | bash
+
+# Copy package files
+COPY package.json bun.lockb ./
+COPY packages ./packages
+
+# Install dependencies
+RUN bun install
+
+ENV NODE_ENV=development
+
+# Start: 1) auth, 2) vite watch, 3) server with watch
+CMD ["/bin/bash", "-c", "\
+  pass-cli login ${PROTON_EMAIL} && \
+  cd packages/config && bun run vite build --watch & \
+  cd packages/server && bun run --watch src/index.ts"]
